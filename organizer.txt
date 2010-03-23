@@ -1,0 +1,96 @@
+; Organizer
+;
+; Moves items from one container to another
+;
+; 1) Target the item type you wish to be moved from that container OR the container itself (MUST BE OPEN) to move ALL items
+; 2) Target the destination container (where you want the items to be moved)
+;
+; NOTE: To move items to character backpack
+;       you can either target the backpack in paperdoll or yourself.
+
+; Hotkey for launching the script
+set %hotkey INSERT
+
+set %wait 630
+set #lpc 1000
+
+repeat
+  onhotkey %hotkey
+    gosub organizer
+  sleep 1
+until #false
+
+sub organizer
+  gosub getItemType
+  gosub getDestCont
+  gosub findItems
+return
+
+sub getDestCont
+  event SysMessage Target the destination container (where you want the items to be moved).
+
+  gosub getTarget
+
+  set %destContID #result
+return
+
+sub getItemType
+  event SysMessage Target the item type you wish to be moved from that container OR the container itself (MUST BE OPEN) to move ALL items
+
+  gosub getTarget
+
+  finditem * AC_ , #result
+
+  ; item is a container
+  if #findcnt > 0
+  {
+    set %itemType *
+    set %sourceContID #result
+  }
+  else
+  {
+    finditem #result
+    set %sourceContID #findbagid
+    set %itemType #findtype
+  }
+return
+
+sub getTarget
+  set #ltargetid X
+  set #targcurs 1
+
+  targloop:
+  if #targcurs = 1
+    goto targloop
+
+  if #ltargetid = X
+    exit
+
+  if #ltargetid = #charid
+    return #backpackid
+
+return #ltargetid
+
+sub findItems
+  findItem %itemType C_ , %sourceContID
+
+  if #findkind <> -1
+  {
+    for #findindex 1 #findcnt
+    {
+      gosub moveItem #findid %destContID #findstack
+    }
+
+    event SysMessage Done!
+  }
+  else
+  {
+    display No items of the specified type in the source container
+  }
+return
+
+sub moveItem
+  exevent Drag %1 %3
+  exevent Dropc %2
+  sleep %wait
+return

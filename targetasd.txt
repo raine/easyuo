@@ -1,0 +1,16 @@
+gosub getTarget
+
+finditem #result
+
+event SysMessage #findtype
+event Property #findid
+event SysMessage #property
+
+sub getTarget
+  set #ltargetid X
+  set #targcurs 1
+
+  targloop:
+  if #targcurs = 1
+    goto targloop
+return #ltargetid

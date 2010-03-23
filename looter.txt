@@ -1,0 +1,227 @@
+; Looter
+;
+; Loots corpses (:OO)
+;
+; Hotkey for typical usage
+; 1) Go within 2 tiles of a corpse you want to loot
+; 2) Press the hotkey
+; Loots valuable items fast and regs and potions slowly
+; The order the script loots stuff in can be seen in the main subroutine below.
+; If there are multiple corpses in range, the nearest one is looted first
+; and then ignored in subsequent looting attempts.
+set %hk_main F5
+
+; Hotkey for looting a whole corpse slowly
+set %hk_whole F6
+
+; Hotkey for switching between PvE and PvP modes
+set %hk_switch F7
+
+; Delay for looting as fast as possible
+set %fast_delay 600
+
+; Delay for looting items slowly to avoid raising suspicion
+; regs, potions, own corpse
+; situations where you are the only one looting
+set %slow_delay 1000
+
+set #lpc 1000
+
+set %mode 0
+
+set %conts ZJF_CKF_YKK_LKF_CUD
+
+gosub setLootBag
+
+hotkeyloop:
+repeat
+  onhotkey %hk_main
+    gosub main
+  onhotkey %hk_whole
+    gosub whole
+  onhotkey %hk_switch
+    gosub switch
+  sleep 1
+until #false
+
+sub main
+  set %count 0
+  
+  gosub findCorpse
+
+  if %corpseID = #false
+    return
+
+  if %mode = 0
+  {
+    ; What to loot in PvP mode:
+    
+    ; Loot stuff in order of importance, bags and weapons first etc.
+    ;
+    ; Weapons (ALL)
+    gosub lootItems %fast_delay YPO_BNF_CPH_INF_FSF_OSF_ASF_HNF_FMH_CNF_LSF_NSF_ISF_SMH_RMH_CSF_ZRF_MPH_LPH_MSF_BSF_KPO_GUO_KTF_JTF_BPH_EPH_ZSF_ATF_JPH_SOH_POH_NMH_OMH_LPO_ZTO_XTH_YTH_HSF_KSF_NPO_XPO_FUO_JPO_QPF_NPF_KPH_FYG_RHM_SFR_SRH_AQF_PPF_TSF_WSF_BUO_VPO_WPO_WRH_VRH_XRH_YRH_LTF_MTF_OPO_RRH_CUO_OLH_JOH_URH_EMH_WTH_DMH_QMH_CFF_BFF_PMH_GMH_ZPF_CQF_FFF_RPF_TRH_YSF_XSF_FBG_VTH_AUH_ZTH_UOH_VOH_AUO_MPO_BUH_CUH_DMH_GFF_QOH_HFF_TLH_GBG_WOH_TOH_QPO_SPO_WOH_TOH_JSF_USF_LMH_MMH_QPO_SPO_PPO_RPO_JSF_USF_LMH_MMH_PPO_RPO_JSF_KTO
+    ; Bags & containers
+    gosub lootItems %fast_delay %conts
+    ; Reagents
+    gosub lootItems %slow_delay RZF_SZF_JZF_MZF_KZF_JUF_WZF_KUF
+    ; Potions
+    gosub lootItems %slow_delay TUF ; Explos before rest of the pots
+    gosub lootItems %slow_delay ZUF_UUF_YUF_NUF_XUF
+    ; Gold
+    gosub lootItems %fast_delay POF
+  }
+  else
+  {
+    ; What to loot in PvE mode:
+    
+    ; Reagents
+    gosub lootItems %slow_delay RZF_SZF_JZF_MZF_KZF_JUF_WZF_KUF
+    ; Gold
+    gosub lootItems %slow_delay POF
+  }
+  event SysMessage Items looted: %count
+return
+
+sub whole
+  set %count 0
+
+  gosub targetCorpse
+  gosub lootItems %slow_delay *
+  event SysMessage Items looted: %count
+return
+
+sub switch
+  sleep 100
+  if %mode = 0
+  {
+    event SysMessage Switched to mode: PvE
+    set %mode 1
+  }
+  else
+  {
+    event SysMessage Switched to mode: PvP
+    set %mode 0
+  }
+return
+
+sub targetCorpse
+  event SysMessage Target the corpse you wish to loot
+
+  set #targcurs 1
+
+  targloop:
+  if #targcurs = 1
+    goto targloop
+    
+  finditem #ltargetid G_2
+  
+  if #findcnt > 0 && #findtype in YFM_PNF_JNF
+  {
+    set %corpseID #ltargetid
+    
+    gosub openCorpse
+  }
+  else
+  {
+    event SysMessage Error: that is not a corpse or it's too far
+    exit
+  }
+return
+
+sub findCorpse
+  set %corpseID #false
+ 
+  for %i 0 2
+  {
+    finditem YFM_KNF G_ , %i
+
+    if #findcnt > 0
+    {
+      ;ignoreitem #findid
+      set %corpseID #findid
+
+      gosub openCorpse
+      break
+    }
+  }
+return
+
+sub openCorpse
+  ; Open the corpse only if it hasn't been opened yet
+  ; by razor for example, saves some time
+  if #contid <> %corpseID
+  {
+    set #lobjectid %corpseID
+    event macro 17
+    sleep 800
+  }
+return
+
+sub lootItems
+  set %items %2
+  set %delay %1
+
+  repeat
+    finditem %items C_ , %corpseID
+    if #findcnt > 0
+    {
+      gosub lootItem #findid #findstack
+      sleep %delay
+      set %count %count + 1
+    }
+  until #findcnt < 1
+return
+
+sub lootItem
+  finditem %corpseID G_2
+  
+  if #findcnt = 0
+  {
+    event SysMessage Error: the corpse is no longer in range, aborting.
+    goto hotkeyloop
+  }
+  
+  exevent Drag %1 %2
+  if *lootBag <> #backpackid
+  {
+    finditem *lootBag C_ , #backpackid
+    
+    if #findcnt = 0
+    {
+      event SysMessage Loot bag gone, using backpack as loot bag from now on
+      set *lootBag #backpackid
+    }
+  }
+  exevent Dropc *lootBag
+return
+
+sub setLootBag
+  finditem *lootBag C_ , #backpackid
+  
+  if #findcnt > 0
+  {
+    event SysMessage Using your previous loot bag
+    return
+  }
+
+  event SysMessage Target the container in your backpack you wish to use as a loot bag or target yourself
+
+  set #targcurs 1
+
+  targloop:
+  if #targcurs = 1
+    goto targloop
+
+  finditem #ltargetid C_ , #backpackid
+  
+  if #findcnt > 0 && #findtype in %conts
+  {
+    event SysMessage Using that as loot bag
+    set *lootBag #findid
+  }
+  else
+  {
+    event SysMessage Not using a loot bag
+    set *lootBag #backpackid
+  }
+return

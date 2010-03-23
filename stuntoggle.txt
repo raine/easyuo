@@ -1,0 +1,50 @@
+set #lpc 1000
+
+loop:
+repeat
+  onhotkey f12
+    gosub stun
+until #false
+
+sub stun
+  set %jrnl #jindex
+  key j ; razor stun hotkey
+  while #true
+  {
+    if #jindex > %jrnl
+    {
+      set %jrnl %jrnl + 1
+      scanjournal %jrnl
+      
+      if ready_to_stun in #journal
+        goto stunloop
+
+      if decide_to_not in #journal
+      {
+        sleep 300
+        gosub stun
+      }
+    }
+  }
+return
+
+stunloop:
+set %jrnl #jIndex
+
+while #true
+{
+  if #jIndex > %jrnl
+  {
+    set %jrnl %jrnl + 1
+    scanjournal %jrnl
+    if ( successfully_stun in #journal )
+    {
+      sound
+      msg $
+      msg /STUN STUN STUN!$
+      msg /STUN STUN STUN!$
+      msg /STUN STUN STUN!$
+      goto loop
+    }
+  }
+}

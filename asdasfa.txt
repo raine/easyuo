@@ -1,0 +1,69 @@
+set %wait 550
+
+gosub selectMainCont
+gosub openConts %maincont
+
+stop
+
+sub selectMainCont
+  event SysMessage Target the container.
+
+  set #targcurs 1
+
+  targloop:
+  if #targcurs = 1
+    goto targloop
+
+  findItem #ltargetid G_2
+
+  if #findkind <> -1
+  {
+    set %maincont #findid
+
+    set #lobjectid %maincont
+    event macro 17
+    sleep %wait
+  }
+  else
+  {
+    display That is too far.
+    stop
+  }
+return
+
+sub openConts
+  ; search for items inside the container
+  findItem NUF C_ , %1
+  if #findkind <> -1
+  {
+    for #findindex 1 #findcnt
+    {
+      gosub moveItem #findid #backpackid
+    }
+  }
+
+  ; search for containers inside the container
+  contloop:
+  findItem CKF C_ , %1
+  if #findkind <> -1
+  {
+    ignoreitem #findid
+    event sysmessage #findid
+
+    set #lobjectid #findid
+    event macro 17
+    sleep %wait
+
+    set %curcont #findbagid
+    gosub openConts #findid
+    set %1 %curcont
+
+    goto contloop
+  }
+return
+
+sub moveItem
+  exevent Drag %1
+  exevent Dropc %2
+  sleep 550
+return

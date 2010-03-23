@@ -1,0 +1,12 @@
+set %last #lobjecttype
+
+while #true
+{
+  while #lobjecttype = %last
+  {
+      sleep 10
+  }
+  
+  event sysmessage #lobjecttype
+  set %last #lobjecttype
+}

@@ -1,0 +1,230 @@
+set #lpc 1000
+
+repeat
+  onhotkey q alt
+    gosub steal
+  onhotkey w alt
+    gosub snoop
+  onhotkey e alt
+    gosub setPlayerCont
+  onhotkey s alt
+    gosub setWeapon
+  onhotkey a alt
+    gosub stealWeapon
+    
+  onhotkey q ctrl ; weapons
+    gosub setTarget YPO_CPH_INF_FSF_OSF_ASF_HNF_FMH_LSF_NSF_ISF_SMH_RMH_CSF_ZRF_MPH_LPH_MSF_BSF_KPO_GUO_KTF_JTF_BPH_EPH_ZSF_ATF_JPH_SOH_POH_NMH_OMH_LPO_ZTO_XTH_YTH_HSF_KSF_NPO_XPO_FUO_JPO_QPF_NPF_KPH_FYG_RHM_SFR_SRH_AQF_PPF_BUO_VPO_WPO_WRH_VRH_XRH_YRH_LTF_MTF_OPO_RRH_CUO_OLH_JOH_URH_EMH_WTH_DMH_QMH_CFF_BFF_PMH_GMH_ZPF_CQF_FFF_RPF_TRH_YSF_XSF_FBG_VTH_AUH_ZTH_UOH_VOH_AUO_MPO_BUH_CUH_DMH_GFF_QOH_HFF_TLH_GBG_WOH_TOH_QPO_SPO_WOH_TOH_JSF_USF_LMH_MMH_QPO_SPO_PPO_RPO_JSF_USF_LMH_MMH_PPO_RPO_JSF weapons
+  onhotkey w ctrl
+    gosub setTarget ZLF bandages
+  onhotkey e ctrl
+    gosub setTarget KZF garlic
+  onhotkey r ctrl
+    gosub setTarget MZF mandrake
+  onhotkey a ctrl
+    gosub setTarget ZUF refreshes
+  onhotkey s ctrl
+    gosub setTarget NUF cures
+  onhotkey d ctrl
+    gosub setTarget KTO bola
+  sleep 1
+until #false
+
+sub stealLast
+  set #ltargetkind 1
+  key n ; disarm
+  key n ; disarm
+  key n ; disarm
+  event macro 13 33
+  target
+  event macro 22
+return
+
+sub stealWeapon
+  set %temp #ltargetid
+  set #ltargetid %targetWeaponID
+  gosub stealLast
+  set #ltargetid %temp
+return
+
+sub setWeapon
+  event SysMessage Target enemy weapon
+
+  set #targcurs 1
+
+  targloop:
+  if #targcurs = 1
+    goto targloop
+
+  set %targetWeaponID #ltargetid
+return
+
+sub snoop
+  set %time #systime
+  
+  while #contid <> #lobjectid
+  {
+    set %sinceStart #systime - %time
+    if %sinceStart > 2000
+    {
+      event sysmessage Couldn't open target's pack within 2 secs, aborting
+      return
+    }
+    set #lobjectid %targetBackPackID
+    event Macro 17
+    sleep 1
+  }
+  
+  ; Index what the guy has in his pack
+  finditem * C_ , #lobjectid
+
+  set %types
+  set %typecount 0
+
+  for #findindex 1 #findcnt
+  {
+    if #findtype notin %types
+    {
+      set %typecount %typecount + 1
+      set %type . %typecount #findtype
+      set %types %types , _ , #findtype
+      set %c_ . #findtype 0
+    }
+    
+    set %c_ . #findtype %c_ . #findtype + 1
+    set % . #findtype , %c_ . #findtype #findid
+    
+    if #findtype in LKF_CKF
+    {
+      set #lobjectid #findid
+      event macro 17
+    }
+  }
+
+  ; pouches/bags/backpack
+  gosub checkConts LKF
+  gosub checkConts CKF
+  gosub checkConts ZJF
+
+  event SysMessage Target player's backpack successfully indexed
+return
+
+sub checkConts
+  event sysmessage %1
+  if %1 in %types
+  {
+    for %i 1 % . c_ . %1
+    {
+      set %temp %1 , %i
+      set %temp_id % . %temp
+      
+      repeat
+        finditem %temp_id
+        
+        if #findcnt = 0
+          return
+
+        set #lobjectid %temp_id
+        event macro 17
+      until #contid = %temp_id
+
+      finditem * C_ , %temp_id
+
+      if #findcnt = 0
+      {
+        event sysmessage Empty container, will be ignored in future
+        ignoreitem %temp_id
+      }
+      else
+      {
+        for #findindex 1 #findcnt
+        {
+          if #findtype notin %types
+          {
+            set %typecount %typecount + 1
+            set %type . %typecount #findtype
+            set %types %types , _ , #findtype
+            set %c_ . #findtype 0
+          }
+
+          set %c_ . #findtype %c_ . #findtype + 1
+          set % . #findtype , %c_ . #findtype #findid
+        }
+      }
+    }
+  }
+return
+
+sub steal
+  set %start #jIndex
+
+  gosub stealLast
+  
+  set #lobjectid %targetBackPackID
+  event Macro 17
+  
+  sleep 500
+  
+  for %i %start #jIndex
+  {
+    scanjournal %i
+    if successfully_steal in #journal
+    {
+      event sysmessage Item stolen
+      
+      gosub snoop
+      break
+    }
+  }
+return
+
+sub setTarget
+  str len %1
+  
+  if #strres > 3
+  {
+    for %i 1 %typecount
+    {
+      if %type . %i in %1
+         set %type %type . %i
+    }
+  }
+  else
+  {
+     set %type %1
+  }
+
+  if %type notin %types
+  {
+    event SysMessage Person doesn't have %2
+    return
+  }
+
+
+  for %i 1 %c_ . %type
+  {
+    if % . %type . %i <> 0
+    {
+      set %temp %type , %i
+      set %id % . %temp
+      break
+    }
+  }
+  
+  event sysmessage Last target set to %2
+  
+  set #ltargetid %id
+return
+
+sub setPlayerCont
+  event SysMessage Target the pack you're stealing from
+
+  set #targcurs 1
+  
+  targloop:
+  if #targcurs = 1
+    goto targloop
+
+  set %targetBackPackID #ltargetid
+  
+  event SysMessage You can snoop now
+return

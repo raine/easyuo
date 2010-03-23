@@ -1,0 +1,38 @@
+initEvents
+
+gosub meditate
+gosub cast_spell
+gosub target_self
+
+sub choose_spell
+chooseskill mage
+
+sub cast_spell
+    if #MANA < 40 {
+    return
+    }
+
+    event macro 15 52
+    sleep 1000
+return
+
+sub target_self
+    target
+    set #LtargetKind 1
+    event macro 22
+return
+
+sub meditate
+if #MANA >= 40
+{
+return
+}
+else
+{
+event macro 13 46
+while #MANA < #MAXMANA {
+sleep 1
+}
+}
+return
+

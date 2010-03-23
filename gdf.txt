@@ -1,0 +1,62 @@
+gosub selectPot
+set %potType #result
+
+gosub findKeg
+set %kegId #result
+
+gosub findPots %potType
+
+for #findindex 1 #findcnt
+{
+  gosub potIntoKeg #findid %kegId
+}
+
+display Out of potions.
+stop
+
+sub selectPot
+  event SysMessage Target the potion type you wish to empty into a keg.
+
+  set #targcurs 1
+
+  targloop:
+  if #targcurs = 1
+    goto targloop
+    
+  findItem #ltargetid C_ , KNUKLOD
+  halt
+  
+  if ( #findkind = -1 )
+  {
+    display That item is not in your backpack.
+    stop
+  }
+  
+return #findtype
+
+sub findKeg
+  findItem QMJ C_ , #backpackid
+
+  if ( #findkind = -1 )
+  {
+    display Unable to locate a keg.
+    stop
+  }
+return #findid
+
+sub findPots
+  findItem %1 C;_ , #BACKPACKID
+  
+  if ( #findkind = -1 )
+  {
+    display Unable to locate any potions.
+    stop
+  }
+return
+
+sub potIntoKeg
+  exevent Drag %1
+  exevent Dropc %2
+  sleep 550
+return
+

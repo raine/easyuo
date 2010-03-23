@@ -1,0 +1,33 @@
+set %foo #systime
+
+event Macro 13 30
+target
+key ESC
+
+set %jrnl #jindex
+
+while #true
+{
+  foo:
+
+  event Macro 13 30
+  
+  while #true
+  {
+    if #jindex > %jrnl
+    {
+      set %jrnl %jrnl + 1
+
+      scanjournal %jrnl
+
+      if must_wait in #journal
+        goto foo
+
+      if poison in #journal
+      {
+        set %time #systime - %foo
+        display %time
+      }
+    }
+  }
+}

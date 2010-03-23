@@ -1,0 +1,270 @@
+; Multipoisoner
+;
+; Applies poisons on multiple weapons
+; Wipes weapon clean if selected weapon is already poisoned
+
+set %kegType QMJ
+set %emptyPotType WUF
+set %poisonType AVF
+set %oilClothType RTI
+
+gosub askForWeapons
+gosub poisonWeapons
+stop
+
+sub poisonWeapons
+  if %wepCount < 1
+  {
+    event SysMessage Quitting..
+    stop
+  }
+
+  set %cur 0
+  
+  repeat
+    set %weaponID % . wep . %cur
+    
+    gosub getName %weaponID
+    str Lower #result
+    set %tmp %cur + 1
+    event SysMessage Poisoning a #strres [ , %tmp , / , %wepCount , ]
+  
+    gosub poisonWeapon %weaponID
+    
+    if #result = #true
+      set %cur %cur + 1
+  until %cur = %wepCount
+  
+  event SysMessage Done!
+return
+
+sub poisonWeapon
+  gosub got %poisonType
+  set %poison #result
+  
+  ; No poison pots, check for empty pot and keg
+  if %poison = #false
+  {
+    gosub got %emptyPotType
+    if #result = #false
+    {
+      display No empty potions! Get one
+      gosub waitUntilExists %emptyPotType
+    }
+    
+    ; Pour poison from a keg
+    gosub getPoisonFromKeg #result
+    
+    if #result = #true
+    {
+      gosub got %poisonType
+      set %poison #result
+    }
+    else
+      return #false
+  }
+
+  ; Poisoning skill has a cooldown of 10 seconds
+  ; regardless of if you actually use it, so if poisoning fails because a weapon
+  ; has poison on it, we can't attempt to again right away.
+  if %lastPoisoning <> N/A
+  {
+    repeat
+      set %timeSincePoisoning #systime - %lastPoisoning
+      sleep 1
+    until %timeSincePoisoning > 10500
+  }
+  
+  set %lastPoisoning #systime
+  
+  event Macro 13 30 ; poisoning
+  target
+  gosub target %poison
+  target
+  set %jrnl #jindex ; where were we in the journal before poisoning anything
+  gosub target %weaponID
+  
+  while #true
+  {
+    if #jindex > %jrnl
+    {
+      set %jrnl %jrnl + 1
+
+      scanjournal %jrnl
+      if you_apply_the_poison in #journal
+        return #true
+        
+      if cannot_poison in #journal
+        return #true
+        
+      if must_be_wiped_clean in #journal
+      {
+        gosub wipeWeapon %weaponID
+        
+        ; weapon ignored
+        if #result = #false
+          return #true
+        else
+          return #false
+      }
+    }
+  }
+return
+
+sub wipeWeapon
+  gosub got %oilClothType
+  
+  set %oilCloth #result
+  
+  if #result = #false
+  {
+    display yesno No oil cloth to clean the weapon with!$Pause the script until you get oil cloth or ignore the poisoned weapon and go on?
+    if #dispRes = yes
+    {
+      pause
+      gosub waitUntilExists %oilClothType
+      gosub wipeWeapon %weaponID
+    }
+    else
+      return #false
+  }
+  else
+  {
+    ; The weapon has to be in the backpack to be able to wipe it
+    finditem %weaponID
+    set %origPack #findbagid
+    
+    ; Move item to backpack
+    if #findbagid <> #backpackid
+      gosub moveItem %weaponID #backpackid
+
+    
+    gosub use %oilCloth
+    target
+    gosub target %weaponID
+    
+    ; Move item to the original bag
+    if %origPack <> #backpackid
+      gosub moveItem %weaponID %origPack
+  }
+return
+
+sub getPoisonFromKeg
+  gosub got %kegType
+
+  ; No keg to pour the poison from!
+  if #result = #false
+  {
+    display No keg! Place a poison keg in your backpack
+    gosub waitUntilExists %kegType
+  }
+  
+  set %jrnl #jindex
+  
+  gosub use #result
+  
+  while #true
+  {
+    if #jindex > %jrnl
+    {
+      set %jrnl %jrnl + 1
+      
+      scanjournal %jrnl
+      
+      if keg_is_empty in #journal
+      {
+        display Keg is empty!$Pausing script, press play after you have poison in some form in your pack
+        pause
+        return #false
+      }
+      
+      if pour_some in #journal
+        return #true
+    }
+  }
+return
+
+sub target
+  set #ltargetid %1
+  event macro 22
+return
+
+sub waitUntilExists
+  set #findid X
+  
+  repeat
+    finditem %1 C_ , #backpackid
+    sleep 1
+  until #findid <> X
+return #findid
+
+sub use
+  set #lobjectid %1
+  event macro 17
+return
+
+sub got
+  finditem %1 C_ , #backpackid
+
+  if #findcnt > 0
+    return #findid
+  else
+    return #false
+return
+
+sub askForWeapons
+  event SysMessage Target all weapons you wish poison and hit ESC when you're done
+  
+  set %wepCount 0
+  
+  repeat
+    gosub getTarget
+    
+    if #result <> X
+      gosub addWeapon #result
+  until #ltargetid = X
+  
+  event SysMessage OK! %wepCount weapon(s) chosen.
+return
+
+sub addWeapon
+  ; check if weapon has already been chosen
+  set %j %wepCount - 1
+  for %i 0 %j
+  {
+    if % . wep . %i = %1
+      return
+  }
+
+  set % . wep . %wepCount %1
+  gosub output %1
+  set %wepCount %wepCount + 1
+return
+
+sub getTarget
+  set #ltargetid X
+  set #targcurs 1
+  
+  targloop:
+  if #targcurs = 1
+    goto targloop
+return #ltargetid
+
+sub output
+  gosub getName %1
+  event sysmessage #result
+return
+
+sub getName
+  event Property %1
+  str Pos #property $
+  set %subt #strres - 1
+  str Left #property %subt
+return #strres
+
+sub moveItem
+  exevent Drag %1
+  exevent Dropc %2
+  sleep 600
+return
+

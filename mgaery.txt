@@ -1,0 +1,79 @@
+initEvents
+
+gosub meditate
+gosub choose_spell
+gosub cast_spell
+gosub target_self
+
+sub choose_spell
+chooseskill mage
+if #skill < 1001
+{
+set %spell 52
+set %mana 40
+set %wait 1000
+}
+if #skill < 800
+{
+set %spell 43
+set %mana 20
+set %wait 1000
+}
+if #skill < 550
+{
+set %spell 30
+set %mana 11
+set %wait 1000
+}
+if #skill < 450
+{
+set %spell 17
+set %mana 9
+set %wait 1000
+}
+chooseskill resi
+if #skill > 999
+{
+halt
+}
+if #skill < 650
+{
+set %spell 30
+set %mana 11
+set %wait 1000
+}
+return
+
+
+sub cast_spell
+    key F5 ; RESTOCK
+    sleep 100
+    if #MANA < %mana {
+    return
+    }
+
+    event macro 15 %spell
+    sleep 1000
+return
+
+sub target_self
+    target
+    set #LtargetID #CharID
+    set #LtargetKind 1
+    event macro 22
+return
+
+sub meditate
+if #MANA >= %mana
+{
+return
+}
+else
+{
+event macro 13 46
+while #MANA < #MAXMANA {
+sleep 1
+}
+}
+return
+

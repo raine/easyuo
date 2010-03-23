@@ -1,0 +1,50 @@
+gosub useKeg
+gosub poisonDagger
+
+sub poisonDagger
+  event macro 13 30 ; poisoning
+  target
+  gosub targetPoison
+  target
+  set %jstart #jindex
+  gosub targetDagger
+  
+return
+
+sub targetPoison
+  finditem AVF C_ , #backpackid
+
+  if #findcnt > 0
+  {
+    set #ltargetid #findid
+    event macro 22
+  }
+  else
+    exit
+return
+
+sub targetDagger
+  finditem WSF C_ , #backpackid
+
+  if #findcnt > 0
+  {
+    set #ltargetid #findid
+    event macro 22
+  }
+  else
+    exit
+return
+
+sub useKeg
+  finditem QMJ C_ , #backpackid
+  if #findcnt > 0
+  {
+    set #lobjectid #findid
+    event macro 17
+  }
+  else
+  {
+    display No kegs
+    stop
+  }
+return

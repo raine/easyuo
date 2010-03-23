@@ -1,0 +1,53 @@
+start:
+gosub find_bandages
+
+; journal index position before attempting to bandage
+set %cur #jIndex
+
+gosub bandage_last
+gosub check_journal
+
+sub find_bandages
+    finditem ZLF C_ , #BackPackID
+    set #lobjectID #findid
+return
+
+sub bandage_last
+    event macro 17
+    target
+    event macro 22
+return
+
+sub check_journal
+    while #true
+    {
+      if ( #JINDEX > %cur )
+      {
+        set %foo #JINDEX
+        for %i %cur %foo
+        {
+          scanjournal %i
+          ;event SysMessage #journal
+          if ( not_damaged in #journal )
+          {
+            goto start
+          }
+          if ( finish_applying in #journal )
+          {
+            goto start
+          }
+          if ( You_heal_what_little_damage_your_patient_had. in #journal )
+          {
+            goto start
+          }
+          if ( barely_help in #journal )
+          {
+            goto start
+          }
+        }
+        set %cur %foo
+        ;set %cur #jIndex
+      }
+    }
+return
+

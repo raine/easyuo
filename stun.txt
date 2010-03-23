@@ -1,0 +1,18 @@
+set %jrnl #jIndex
+
+while #true
+{
+  if #jIndex > %jrnl
+  {
+    set %jrnl %jrnl + 1
+    scanjournal %jrnl
+    if ( successfully_stun in #journal )
+    {
+      sound
+      msg $
+      msg /STUN STUN STUN!$
+      msg /STUN STUN STUN!$
+      msg /STUN STUN STUN!$
+    }
+  }
+}

@@ -1,0 +1,65 @@
+  ; Trapper
+;
+; Clears Razor's UseOnce queue, traps all pouches and adds them to the queue
+
+; Hotkey for launching the script
+set %hotkey F8
+
+; Maximum amount of pouches you typically carry
+set %pouches 8
+
+; Hotkey for UseOnce in Razor
+set %useonce_hk z
+
+set #lpc 1000
+
+repeat
+  onhotkey %hotkey
+    gosub main
+  sleep 1
+until #false
+
+sub main
+  gosub clearQueue
+  gosub pouches
+return
+
+sub clearQueue
+  event SysMessage Clearing the UseOnce queue.
+
+  for %i 1 %pouches
+  {
+    key %useonce_hk
+  }
+return
+
+sub pouches
+  findItem LKF C_ , #backpackid
+  
+  if #findkind <> -1
+  {
+    for #findindex 1 #findcnt
+    {
+      gosub trap #findid
+    }
+
+    event SysMessage Done!
+  }
+  else
+  {
+    event SysMessage Error: no pouches
+  }
+return
+
+sub trap
+  set #ltargetkind 1
+  set #ltargetid %1
+
+  event macro 15 12
+  target
+  event macro 22
+  sleep 500
+  msg $
+  msg -adduseonce$
+  event macro 22
+return
